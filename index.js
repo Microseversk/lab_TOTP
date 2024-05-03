@@ -5,6 +5,14 @@ const speakeasy = require("speakeasy");
 const QRCode = require("qrcode");
 const bcrypt = require("bcrypt");
 
+async function getSecretWithWeather() {
+  const randCity = Math.floor(Math.random() * 10000);
+  const response = await fetch(
+    `https://api.openweathermap.org/data/2.5/weather?q=${randCity}&lang=ru&appid=b1b35bba8b434a28a0be2a3e1071ae5b&units=imperial`
+  );
+  return await response.text();
+}
+
 const users = [
   {
     login: "otrijka",
@@ -23,10 +31,12 @@ app.listen(config.PORT, () =>
 app.post("/register", async (req, res) => {
   const { login, password } = req.body;
   try {
+    const secretString = await getSecretWithWeather();
+    console.log(secretString.toString());
     const secret = speakeasy.generateSecret({
       issuer: "lab2",
       name: login,
-      length: 20,
+      secret: secretString,
     });
     const hashedPassword = await bcrypt.hash(password, 10);
     users.push({
@@ -34,10 +44,7 @@ app.post("/register", async (req, res) => {
       password: hashedPassword,
       secret: secret.base32,
     });
-    console.log(users);
     const qrcode = await QRCode.toDataURL(secret.otpauth_url);
-    console.log(secret.base32);
-    console.log(secret.otpauth_url);
     res.send(`<img src="${qrcode}">`);
   } catch (e) {
     console.log(e);
